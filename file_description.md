@@ -4,3 +4,5 @@
 
 *Speed_prediction_nestedCV* - an LSTM that predicts reading speed. It uses updated centering and scaling, adds demographic features after the lstm unit. Data preprocessor returns X, y, subj, and reading speed (!), this preprocessor would be useful in the final version of the enhanced LSTM that deals with x, y, subj, and reading speed.
 This is a stand-alone training that I need to find the necessary parameter combination for the main training that joins two parts (*updated_lstm_for_reading_v2*).
+
+*Multihead_fixation_prediction_v1.ipynb* - a transformer that predicts the properties of randomly masked fixations. I've tried several position encoders, CustomPositionalEncoding seems to be the best, and AbsolutePositionalEmbedding the worst - loss is almost 10x.
