@@ -31,7 +31,7 @@ from data import EyetrackingDataset, apply_standardization, EyetrackingDataPrepr
 parser = argparse.ArgumentParser(description="Predict reading speed and evaluate loss")
 parser.add_argument("--model", dest="model")
 parser.add_argument("--no-roc", dest="roc", action="store_false")
-parser.add_argument("--tunesets", type=int, default=1)
+parser.add_argument("--tunesets", type=int, default=15)
 parser.add_argument("--tune", dest="tune", action="store_true")
 parser.add_argument("--no-tune", dest="tune", action="store_false")
 parser.add_argument("--wordvectors", type=str, default="none")
@@ -62,7 +62,7 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 if device == "cuda":
     device = torch.device(f'cuda:{args.cudaid}')
     
-NUM_FOLDS = 3
+NUM_FOLDS = 10
 NUM_TUNE_SETS = args.tunesets
 BATCH_SUBJECTS = args.batch_subjects
 tune = args.tune
@@ -73,13 +73,13 @@ os.makedirs(folder, exist_ok=True)
 os.makedirs(folder+'saved_models/', exist_ok=True)
 
 if tune:
-    used_test_params = []
-    parameter_sample = [
-        get_params(hyperparameter_space[args.model]) for _ in range(NUM_TUNE_SETS)
-    ]
-#    keys, values = zip(*hyperparameter_space[args.model].items())
-#    parameter_sample = [dict(zip(keys, v)) for v in itertools.product(*values)]
 #    used_test_params = []
+#    parameter_sample = [
+#        get_params(hyperparameter_space[args.model]) for _ in range(NUM_TUNE_SETS)
+#    ]
+    keys, values = zip(*hyperparameter_space[args.model].items())
+    parameter_sample = [dict(zip(keys, v)) for v in itertools.product(*values)]
+    used_test_params = []
 print(parameter_sample)
 NUM_TUNE_SETS = len(parameter_sample)
 

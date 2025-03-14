@@ -83,6 +83,12 @@ class EyetrackingDataPreprocessor(Dataset):
                     'direction_dummy_RIGHT', 'direction_dummy_DOWN', 'sex', 'Age', 
                     'Grade_dummy_1', 'Grade_dummy_2', 'Grade_dummy_3', 'Grade_dummy_4',
                     'Grade_dummy_5', 'Grade_dummy_6'] 
+        elif {'Reading_speed'}.issubset(data.columns) and drop_demographics == True:
+            cols = ['item', 'subj', 'group', 'Reading_speed', 'fix_dur',
+                   'landing', 'word_length', 'predictability', 'frequency', 
+                    'number.morphemes', 'next_fix_dist', 'sac_ampl', 'sac_angle', 
+                    'sac_vel', 'rel.position', 'direction_dummy_LEFT', 
+                    'direction_dummy_RIGHT', 'direction_dummy_DOWN'] 
         else:
             cols = ['item', 'subj', 'fix_dur',
                    'landing', 'word_length', 'predictability', 'frequency', 
