@@ -99,7 +99,6 @@ class RSClassifier(nn.Module):
                 data,
                 batch_size=config["batch_size"],
                 shuffle=True,
-                # drop_last=True
             )
             epoch_count += 1
             epoch_loss = 0
@@ -113,11 +112,9 @@ class RSClassifier(nn.Module):
                 optimizer.step()
                 epoch_loss += loss.item()/len(X)  
             mean_loss = epoch_loss/len(loader)
-            # print(f"Epoch {epoch} done. Loss: {epoch_loss}")
             if dev_data is not None:
                 dev_accuracy = model.evaluate(dev_data, metric="loss", device=device)
                 model.train()
-                # print(f"Dev loss: {dev_accuracy} in Epoch {epoch}")
                 if epoch > min_epochs and all(dev_accuracy > i for i in best_losses):
                     epoch_count -= patience - best_losses.index(min(best_losses))
                     break
@@ -141,8 +138,7 @@ class RSClassifier(nn.Module):
         for X, _, subj, y in loader:
             X = X.to(device)
             y = y.to(device)
-            y_pred = self._predict(X, subj_mean=data.batch_subjects).squeeze()   # why do I need to squeeze here? I did not need in the simple model
-            
+            y_pred = self._predict(X, subj_mean=data.batch_subjects).squeeze()               
             y_preds.append(y_pred.item())
             y_trues.append(y.item())
             subjs.append(subj)
