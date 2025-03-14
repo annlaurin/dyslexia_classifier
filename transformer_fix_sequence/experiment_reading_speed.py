@@ -79,9 +79,11 @@ if tune:
 #    ]
     keys, values = zip(*hyperparameter_space[args.model].items())
     parameter_sample = [dict(zip(keys, v)) for v in itertools.product(*values)]
+    used_test_params = []
 print(parameter_sample)
 NUM_TUNE_SETS = len(parameter_sample)
-    
+
+ 
 tprs_folds = {}
 
 
