@@ -358,3 +358,27 @@ class TransformerClassifier(EyetrackingClassifier):
         out = self.downscale(out)
 
         return out, labels, mask
+
+
+class LSTMClassifier(EyetrackingClassifier):
+    def initialize_model(self, input_size: int, config):
+        self.lstm = nn.LSTM(input_size-(NUM_DEMOGR_FEATURES), config["lstm_hidden_size"], 
+                            batch_first=True, bidirectional=True) 
+        self.linear1 = nn.Linear(config["lstm_hidden_size"] + (NUM_DEMOGR_FEATURES), 20)
+        self.linear2 = nn.Linear(20, 10)
+        self.linear3 = nn.Linear(10, 1)
+        self.dropout = nn.Dropout(0.20) 
+
+    def forward(self, input: torch.Tensor, pretrain: bool = False) -> torch.Tensor:
+        demo = input[:, 0, -(NUM_DEMOGR_FEATURES):] # only one time step is needed, demography is the same across time steps
+        lstm_output, (lstm_hidden, lstm_cell) = self.lstm(input[:,:,:-(NUM_DEMOGR_FEATURES)])
+        lstm_hidden = lstm_hidden.mean(0)
+        linear_input = torch.cat((lstm_hidden, demo), dim=1) # adding demographic features back
+        linear1_output = self.linear1(linear_input)
+        linear2_output = self.linear2(linear1_output)
+        if pretrain:
+            linear_output = linear1_output.squeeze(1)
+        else:
+            linear_output = self.linear3(linear2_output) 
+        return linear_output
+        

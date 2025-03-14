@@ -6,6 +6,7 @@ from functools import partial, reduce
 import argparse
 import copy
 import time
+import gc
 
 ## PyTorch
 import torch
@@ -121,11 +122,15 @@ if tune:
 	    batch_size = parameter_sample[tune_set]["batch_size"]
         )
         parameter_evaluations[dev_fold, tune_set] = tune_accuracy
+        print(tune_accuracy)
+        del running_model
+        gc.collect()
+        torch.cuda.empty_cache()
     # Select best parameter set
     mean_dev_loss = np.mean(parameter_evaluations, axis=0)
     best_parameter_set = np.argmin(mean_dev_loss)
     params_test = parameter_sample[best_parameter_set]
-    print(f'best performing parameter for dev fold ', dev_fold, ": ", params_test)
+    print(f'best performing parameter:", {params_test}')
     used_test_params.append(params_test)
     best_pretrained_model = None
     
