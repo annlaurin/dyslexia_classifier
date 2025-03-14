@@ -31,7 +31,7 @@ from data import EyetrackingDataset, apply_standardization, EyetrackingDataPrepr
 parser = argparse.ArgumentParser(description="Predict reading speed and evaluate loss")
 parser.add_argument("--model", dest="model")
 parser.add_argument("--no-roc", dest="roc", action="store_false")
-parser.add_argument("--tunesets", type=int, default=55)
+parser.add_argument("--tunesets", type=int, default=1)
 parser.add_argument("--tune", dest="tune", action="store_true")
 parser.add_argument("--no-tune", dest="tune", action="store_false")
 parser.add_argument("--wordvectors", type=str, default="none")
@@ -62,8 +62,8 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 if device == "cuda":
     device = torch.device(f'cuda:{args.cudaid}')
     
-NUM_FOLDS = 10
-#NUM_TUNE_SETS = args.tunesets
+NUM_FOLDS = 3
+NUM_TUNE_SETS = args.tunesets
 BATCH_SUBJECTS = args.batch_subjects
 tune = args.tune
 
@@ -73,13 +73,13 @@ os.makedirs(folder, exist_ok=True)
 os.makedirs(folder+'saved_models/', exist_ok=True)
 
 if tune:
-#    used_test_params = []
-#    parameter_sample = [
-#        get_params(hyperparameter_space[args.model]) for _ in range(NUM_TUNE_SETS)
-#    ]
-    keys, values = zip(*hyperparameter_space[args.model].items())
-    parameter_sample = [dict(zip(keys, v)) for v in itertools.product(*values)]
     used_test_params = []
+    parameter_sample = [
+        get_params(hyperparameter_space[args.model]) for _ in range(NUM_TUNE_SETS)
+    ]
+#    keys, values = zip(*hyperparameter_space[args.model].items())
+#    parameter_sample = [dict(zip(keys, v)) for v in itertools.product(*values)]
+#    used_test_params = []
 print(parameter_sample)
 NUM_TUNE_SETS = len(parameter_sample)
 
@@ -212,7 +212,6 @@ for test_fold in range(NUM_FOLDS):
         metric="loss",
         print_report=True,
         per_subj=BATCH_SUBJECTS,
-        save_errors=args.save_errors,
     )
     print("test loss fold ", test_fold, " : ", test_accuracy)
     test_accuracies.append(test_accuracy)
@@ -258,18 +257,18 @@ subj_folds = pd.DataFrame({'fold':folds, 'subject':subjects})
 
 
 folds = []
-groups = []
-pred_probs = []
+true_rs = []
+pred_rs = []
 subjs = []
 
 for fold in tprs_folds:
     fold_column = np.full(len(tprs_folds[fold][0]), int(fold))
     folds.extend(fold_column)
-    groups.extend(tprs_folds[fold][0])
-    pred_probs.extend(tprs_folds[fold][1])
+    true_rs.extend(tprs_folds[fold][0])
+    pred_rs.extend(tprs_folds[fold][1])
     subjs.extend(tprs_folds[fold][2])
 
-pred_folds = pd.DataFrame({'fold':folds, 'group':groups, 'pred_speed':pred_probs, 'subject':subjs})
+pred_folds = pd.DataFrame({'fold':folds, 'true_speed':true_rs, 'pred_speed':pred_rs, 'subject':subjs})
 
 df = subj_folds.merge(pred_folds, on='subject')
 df = df.drop(['fold_x'], axis=1)
