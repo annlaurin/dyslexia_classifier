@@ -62,7 +62,7 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 if device == "cuda":
     device = torch.device(f'cuda:{args.cudaid}')
     
-NUM_FOLDS = 3
+NUM_FOLDS = 10
 NUM_TUNE_SETS = args.tunesets
 BATCH_SUBJECTS = args.batch_subjects
 tune = args.tune
@@ -82,7 +82,7 @@ if tune:
     used_test_params = []
 
 NUM_TUNE_SETS = len(parameter_sample)
-NUM_TUNE_SETS = 1
+
  
 tprs_folds = {}
 
