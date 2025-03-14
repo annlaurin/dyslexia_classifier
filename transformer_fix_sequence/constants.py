@@ -14,9 +14,9 @@ hyperparameter_space = {
     },
     "lstm": {
         "batch_size": [64],           
-        "lr": [1e-02, 1e-03, 1e-04, 1e-05],     
-        "lstm_hidden_size": [30, 40, 50, 60, 70],       
-        "decision_boundary": [0.5, 0.5]     
+        "lr": [1e-02, 1e-03, 1e-04],     
+        "lstm_hidden_size": [30, 40, 50, 60],       
+        "decision_boundary": [0.5]     
     }
 }
 

@@ -11,6 +11,7 @@ import time
 from collections import Counter
 import json
 import gc
+import itertools
 
 ## PyTorch
 import torch
@@ -27,9 +28,8 @@ import data
 from data import EyetrackingDataset, apply_standardization, EyetrackingDataPreprocessor
 
 
-parser = argparse.ArgumentParser(description="Run Russian Dyslexia Experiments")
+parser = argparse.ArgumentParser(description="Predict reading speed and evaluate loss")
 parser.add_argument("--model", dest="model")
-parser.add_argument("--roc", dest="roc", action="store_true")
 parser.add_argument("--no-roc", dest="roc", action="store_false")
 parser.add_argument("--tunesets", type=int, default=55)
 parser.add_argument("--tune", dest="tune", action="store_true")
@@ -37,8 +37,6 @@ parser.add_argument("--no-tune", dest="tune", action="store_false")
 parser.add_argument("--wordvectors", type=str, default="none")
 parser.add_argument("--pretrain", dest="pretrain", action="store_true")
 parser.add_argument("--subjpred", dest="batch_subjects", action="store_false")
-parser.add_argument("--textpred", dest="batch_subjects", action="store_true")
-parser.add_argument("--save-errors", dest="save_errors", type=argparse.FileType("w"))
 parser.add_argument("--seed", dest="seed", type=int, default=43)
 parser.add_argument("--cuda", dest="cudaid", default=0)
 parser.set_defaults(tune=True) #True
@@ -65,7 +63,7 @@ if device == "cuda":
     device = torch.device(f'cuda:{args.cudaid}')
     
 NUM_FOLDS = 10
-NUM_TUNE_SETS = args.tunesets
+#NUM_TUNE_SETS = args.tunesets
 BATCH_SUBJECTS = args.batch_subjects
 tune = args.tune
 
@@ -75,11 +73,14 @@ os.makedirs(folder, exist_ok=True)
 os.makedirs(folder+'saved_models/', exist_ok=True)
 
 if tune:
-    used_test_params = []
-    parameter_sample = [
-        get_params(hyperparameter_space[args.model]) for _ in range(NUM_TUNE_SETS)
-    ]
-
+#    used_test_params = []
+#    parameter_sample = [
+#        get_params(hyperparameter_space[args.model]) for _ in range(NUM_TUNE_SETS)
+#    ]
+    keys, values = zip(*hyperparameter_space[args.model].items())
+    parameter_sample = [dict(zip(keys, v)) for v in itertools.product(*values)]
+print(parameter_sample)
+NUM_TUNE_SETS = len(parameter_sample)
     
 tprs_folds = {}
 
@@ -123,14 +124,12 @@ for test_fold in range(NUM_FOLDS):
             dev_dataset.standardize(mean, sd)
             for tune_set in range(NUM_TUNE_SETS):
                 running_model = copy.deepcopy(MODEL_CLASS)
-                if tune_set%20 == 0:
-                    print(f'tune set {tune_set}')
+                print(f'tune set {tune_set}')
                 if args.pretrain:
                     pretrained_model = next(pretrained_models)
                 else:
                     pretrained_model = None
                 model = None
-                gc.collect()
                 model = running_model.train_model(
                     train_dataset,
                     min_epochs=15,
@@ -147,7 +146,8 @@ for test_fold in range(NUM_FOLDS):
                     per_subj=BATCH_SUBJECTS,
                 )
                 parameter_evaluations[dev_fold, tune_set] = tune_accuracy
-                del running_model
+                print("Tune loss:", tune_accuracy)
+                del running_model, model
                 gc.collect()
                 torch.cuda.empty_cache()
         # Select best parameter set
@@ -222,8 +222,9 @@ for test_fold in range(NUM_FOLDS):
             per_subj=BATCH_SUBJECTS,
         )
         tprs_folds[str(test_fold)] = (y_trues, y_preds, subjs)
-
-
+    del running_model, model
+    gc.collect()
+    torch.cuda.empty_cache()
 if tune:
     print("used test params: ", used_test_params)
 print(
