@@ -6,7 +6,7 @@ hyperparameter_space = {
         "lr": np.linspace(1e-03, 1e-05, num=15), 
         "num_layers": [1, 2, 4, 8],      
         "dropout": np.linspace(0, 0.5, num=15),
-        "mask_prob": np.linspace(0, 0.5, num=15),
+        "mask_prob": np.linspace(0.01, 0.5, num=15),
         "upscale_dim": [14, 32, 64, 128, 256, 512],
         "batch_size": [128],
         # "num_heads" is specified in get_params_nested()
