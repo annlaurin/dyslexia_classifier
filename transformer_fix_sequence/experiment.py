@@ -24,11 +24,11 @@ from data import EyetrackingDataset, apply_standardization, EyetrackingDataPrepr
 
 parser = argparse.ArgumentParser(description="Run Russian Eye-Movement Pretraining")
 parser.add_argument("--model", dest="model")
-parser.add_argument("--tunesets", type=int, default=1000)
+parser.add_argument("--tunesets", type=int, default=1)
 parser.add_argument("--tune", dest="tune", action="store_true")
 parser.add_argument("--no-tune", dest="tune", action="store_false")
 parser.add_argument("--pretrain", dest="pretrain", action="store_true")
-parser.add_argument("--seed", dest="seed", type=int, default=75)
+parser.add_argument("--seed", dest="seed", type=int, default=76) 
 parser.add_argument("--cuda", dest="cudaid", default=0)
 parser.set_defaults(tune=True) 
 parser.set_defaults(model = "transformer")
@@ -50,11 +50,36 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 if device == "cuda":
     device = torch.device(f'cuda:{args.cudaid}')
     
-NUM_FOLDS = 10
+NUM_FOLDS = 3
 NUM_TUNE_SETS = args.tunesets
 tune = args.tune
 
 BATCH_SUBJECTS = False
+
+
+# Create folders to store results
+folder = "results/pretraining/"
+os.makedirs(folder, exist_ok=True) 
+os.makedirs(folder+'saved_models/', exist_ok=True)
+
+# Delete previous results
+for file in [folder+"hyperparameter_selection.csv", folder+'evaluation.csv']:
+    try:
+        os.remove(file)
+    except OSError:
+        pass
+
+# Hyperparameter selection
+header = "Dev fold; Tune set; Parameters; Tune loss\n"
+with open(folder+"hyperparameter_selection.csv", 'w') as file:
+    file.write(header)
+
+# Evaluation
+header = "Test fold; Parameters; Loss\n"
+with open(folder+'evaluation.csv', 'w') as file:
+    file.write(header)
+
+
 
 # Combined dataset: data from children (293) and adults (114), total N = 407
 file = "data/30fixations_RSC_and_children.csv" 
@@ -123,7 +148,10 @@ if tune:
         )
         parameter_evaluations[dev_fold, tune_set] = tune_accuracy
         print(tune_accuracy)
-        del running_model
+        out_str = f"{dev_fold}; {tune_set}; {parameter_sample[tune_set]}; {round(tune_accuracy,4):1.4f}\n"
+        with open(folder+"hyperparameter_selection.csv", 'a') as file:
+            file.write(out_str)
+        del running_model, model
         gc.collect()
         torch.cuda.empty_cache()
     # Select best parameter set
@@ -180,6 +208,9 @@ for test_fold in range(NUM_FOLDS):
 	batch_size = params_test["batch_size"]
     )
     print("test loss fold", test_fold, ":", test_loss)
+    line = f"{test_fold}; {params_test}; {round(test_loss,4):1.4f}\n"
+    with open(folder+'evaluation.csv', 'a') as file:
+        file.write(line)
     test_accuracies.append(test_loss)
 
 if tune:
@@ -195,6 +226,7 @@ final_scores_mean = np.mean(test_accuracies, axis=0)
 final_scores_std = np.std(test_accuracies, axis=0) / np.sqrt(NUM_FOLDS-1) # -1 because dev_fold is never used 
 time_elapsed = time.time() - start_time 
 out_str = ""
+out_str += "Loss & Accuracy & Precision & Recall & F1 & ROC AUC\\\\"
 with open(f"results.txt", "w") as f:
     out_str += f"${round(final_scores_mean,6):1.6f}\db{{{round(final_scores_std,6):1.6f}}}$"
     out_str += "\n"
