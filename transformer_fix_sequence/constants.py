@@ -17,6 +17,18 @@ hyperparameter_space = {
         "lr": [1e-02, 1e-03, 1e-04],     
         "lstm_hidden_size": [30, 40, 50, 60],       
         "decision_boundary": [0.5]     
+    },
+    "transformer_tuning_fast": {
+        "batch_size": [64],
+        "lr": [1e-04, 1e-03, 1e-02],               
+        "decision_boundary": [0.5],   
+        "hidden_size": [30, 40, 50, 60]
+    },
+    "transformer_tuning_slow": {
+        "batch_size": [64],         
+        "lr": [1e-04, 1e-5, 1e-6],     
+        "decision_boundary": [0.5],   
+        "hidden_size": [30, 40, 50, 60]
     }
 }
 
