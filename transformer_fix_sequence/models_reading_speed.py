@@ -422,13 +422,15 @@ class EyetrackingClassifierReadingSpeed(nn.Module):
         elif metric == "f1":
             return metrics.f1_score(y_trues, y_preds_class, zero_division= np.nan) 
         elif metric == "auc": 
-            return metrics.roc_auc_score(y_trues, y_preds_class) 
+            return metrics.roc_auc_score(y_trues, y_preds) 
         elif metric == "all":
             return (
+            	loss,
                 metrics.accuracy_score(y_trues, y_preds_class),
                 metrics.precision_score(y_trues, y_preds_class, zero_division=np.nan),
                 metrics.recall_score(y_trues, y_preds_class, zero_division=np.nan),  
-                metrics.f1_score(y_trues, y_preds_class, zero_division=np.nan),  
+                metrics.f1_score(y_trues, y_preds_class, zero_division=np.nan), 
+                metrics.roc_auc_score(y_trues, y_preds) 
             )
         else:
             raise ValueError(f"Unknown metric '{metric}'")

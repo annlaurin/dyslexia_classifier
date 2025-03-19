@@ -24,7 +24,7 @@ from data import EyetrackingDataset, apply_standardization, EyetrackingDataPrepr
 
 parser = argparse.ArgumentParser(description="Run Russian Eye-Movement Pretraining")
 parser.add_argument("--model", dest="model")
-parser.add_argument("--tunesets", type=int, default=1)
+parser.add_argument("--tunesets", type=int, default=1000)
 parser.add_argument("--tune", dest="tune", action="store_true")
 parser.add_argument("--no-tune", dest="tune", action="store_false")
 parser.add_argument("--pretrain", dest="pretrain", action="store_true")
@@ -50,7 +50,7 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 if device == "cuda":
     device = torch.device(f'cuda:{args.cudaid}')
     
-NUM_FOLDS = 3
+NUM_FOLDS = 10
 NUM_TUNE_SETS = args.tunesets
 tune = args.tune
 
@@ -60,7 +60,6 @@ BATCH_SUBJECTS = False
 # Create folders to store results
 folder = "results/pretraining/"
 os.makedirs(folder, exist_ok=True) 
-os.makedirs(folder+'saved_models/', exist_ok=True)
 
 # Delete previous results
 for file in [folder+"hyperparameter_selection.csv", folder+'evaluation.csv']:

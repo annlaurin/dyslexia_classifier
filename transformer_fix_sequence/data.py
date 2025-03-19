@@ -29,14 +29,7 @@ class EyetrackingDataPreprocessor(Dataset):
         num_folds: float = 10,
         drop_demographics = False,
         ):
-        """
-        Arguments:
-            csv_file (string): Path to the csv file with annotations.
-            transform (callable, optional): Optional transform to be applied
-                on a sample.
-            target_transform (callable, optional): Optional transform to be applied
-                on a label.
-        """
+       
         data = pd.read_csv(csv_file)
         
         # changing dyslexia labels to 0 and 1
