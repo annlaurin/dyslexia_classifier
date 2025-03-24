@@ -1,5 +1,5 @@
 rm(list=ls())
-
+library(ggpubr)
 library(tidyverse)
 df <- read.csv("hyperparameter_selection_full.csv", sep = ";")%>% 
   separate(X.Parameters, 
@@ -116,6 +116,19 @@ inner_dim_plot <- minima %>%
   ggtitle("Inner dimensions")
 inner_dim_plot
 ggsave("img/inner_dim_plot.pdf", width = 8, height = 8)
+
+# Arrange on a grid
+joint_plot <- ggarrange(lr_plot,
+          dropout_plot,
+          mask_plot,
+          NULL,
+          heads_plot,
+          upscale_plot,
+          inner_dim_plot,
+          layer_plot, 
+          nrow = 2, ncol=4)
+joint_plot
+ggsave("img/joint_plot.pdf", width = 30, height = 12)
 
 #########################
 
