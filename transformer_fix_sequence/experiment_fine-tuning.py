@@ -9,7 +9,7 @@ import argparse
 import copy
 import time
 import gc
-
+import itertools
 
 ## PyTorch
 import torch
@@ -58,7 +58,7 @@ if device == "cuda":
     device = torch.device(f'cuda:{args.cudaid}')
   
 NUM_FOLDS = 3
-NUM_TUNE_SETS = args.tunesets
+# NUM_TUNE_SETS = args.tunesets
 BATCH_SUBJECTS = args.batch_subjects
 CHECKPOINT_PATH = "results/pretraining/"
 MODEL_CLASS = BinaryTransformerClassifier
@@ -92,11 +92,12 @@ with open(folder+'evaluation.csv', 'w') as file:
     file.write(header)
 
 if tune:
+    keys, values = zip(*hyperparameter_space[args.model].items())
+    parameter_sample = [dict(zip(keys, v)) for v in itertools.product(*values)]
     used_test_params = []
-    parameter_sample = [
-        get_params(hyperparameter_space[args.model]) for _ in range(NUM_TUNE_SETS)
-    ]
-    
+
+NUM_TUNE_SETS = 1#len(parameter_sample)
+print("Number of tune sets:", NUM_TUNE_SETS)
 tprs_folds = {}
 loss_fn = nn.BCEWithLogitsLoss()
 
@@ -112,22 +113,17 @@ test_accuracies = []
     
 def reload_model(freezing):
     model = torch.load(CHECKPOINT_PATH+"final_full_model.pth", weights_only=False)
-    layers = [model.encoder.layers[0].attn_layer_norm, 
-              model.encoder.layers[0].attention, 
-              model.encoder.layers[0].ffn_layer_norm,
-              model.encoder.layers[0].ff[0],  # this
-              model.encoder.layers[0].ff[1],
-              model.encoder.layers[0].ff[2],
-              model.encoder.layers[0].ff[3],
-              model.encoder.layers[0].ff[4]   # and this
-             ]
     if freezing == "transformer_tuning_frozen":
-        frozen_layers = layers
+        for param in model.parameters():
+    	    param.requires_grad = False
     elif freezing == "transformer_tuning_slow":
-        frozen_layers = np.delete(layers, [3, 7])
-    for layer in frozen_layers:
-        for name, value in layer.named_parameters():
-            value.requires_grad = False
+        for name, layer in model.named_children():
+            if name in ['encoder.layers.3.ff.4', 'encoder.layers.3.ff.0']:
+                for param in layer.parameters():
+                    param.requires_grad = True
+            else:
+                for param in layer.parameters():
+                    param.requires_grad = False
     return model
 
 
@@ -239,7 +235,7 @@ for test_fold in range(NUM_FOLDS):
         device=device,
         metric="all",
         print_report=True,
-        per_subj=BATCH_SUBJECTS,
+        per_subj=True,
         config = params_test
     )
     line = f"{test_fold}; {params_test}; {round(test_accuracy[0],4):1.4f}\n"
@@ -250,7 +246,7 @@ for test_fold in range(NUM_FOLDS):
         y_preds, y_trues, subjs = model.predict_probs(
             test_dataset,
             device=device,
-            per_subj=BATCH_SUBJECTS,
+            per_subj=True,
             config=params_test
         )
         tprs_folds[str(test_fold)] = (y_trues, y_preds, subjs)
@@ -287,3 +283,59 @@ with open(f"{folder}{args.model}_scores.txt", "w") as f:
     out_str += "\n"
     out_str += f"Time: {time_elapsed:7.2f} seconds.\n" 
     f.write(out_str)
+    
+# Saving the model predictions
+folds = []
+subjects = []
+
+for fold in range(len(preprocessor._folds)):
+    fold_column = np.full(len(preprocessor._folds[fold]), fold)
+    folds.extend(fold_column)
+    subjects.extend(preprocessor._folds[fold])
+
+subj_folds = pd.DataFrame({'fold':folds, 'subject':subjects})
+subj_folds
+
+folds = []
+groups = []
+pred_probs = []
+subjs = []
+
+for fold in tprs_folds:
+    fold_column = np.full(len(tprs_folds[fold][0]), int(fold))
+    folds.extend(fold_column)
+    groups.extend(tprs_folds[fold][0])
+    pred_probs.extend(tprs_folds[fold][1])
+    subjs.extend(tprs_folds[fold][2])
+
+pred_folds = pd.DataFrame({'fold':folds, 'group':groups, 'pred_prob':pred_probs, 'subject':subjs})
+pred_folds
+
+df = subj_folds.merge(pred_folds, on='subject')
+df = df.drop(['fold_x'], axis=1)
+df = df.rename(columns={'fold_y': "fold"})
+
+demo = pd.read_csv('data/demo_filtered_centered.csv', decimal=",")
+demo = demo.rename(columns={'subj_demo': "subject"})
+final = df.merge(demo, on =['subject'])
+final.to_csv(folder+'predictions.csv', index=False)
+
+# Saving other artifacts
+
+with open(f'{folder}folds.pickle', 'wb') as handle:
+    pickle.dump(preprocessor._folds, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+with open(f'{folder}tpr_folds.pickle', 'wb') as handle:
+    pickle.dump(tprs_folds, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+with open(f'{folder}test_accs.pickle', 'wb') as handle:
+    pickle.dump(test_accuracies, handle, protocol=pickle.HIGHEST_PROTOCOL)
+    
+with open(f'{folder}test_params.pickle', 'wb') as handle: 
+    pickle.dump(used_test_params, handle, protocol=pickle.HIGHEST_PROTOCOL)
+    
+with open(f'{folder}Roc_tprs.pickle', 'wb') as handle:
+    pickle.dump(Roc.tprs, handle, protocol=pickle.HIGHEST_PROTOCOL)
+            
+with open(f'{folder}Roc_aucs.pickle', 'wb') as handle:
+    pickle.dump(Roc.aucs, handle, protocol=pickle.HIGHEST_PROTOCOL)

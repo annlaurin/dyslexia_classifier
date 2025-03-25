@@ -16,7 +16,7 @@ class ROC:
     ):
         self.tune = 'tuned' if tune else 'untuned'
         self.model = model
-        self.title = f"LSTM performance"
+        self.title = f"Model performance"
         self.fig = plt.figure(figsize=(6, 6), dpi=300)
         self.ax = self.fig.add_subplot(111)
         self.tprs = tprs
@@ -35,7 +35,7 @@ class ROC:
         )
         mean_tpr = np.mean(self.tprs, axis=0)
         mean_tpr[-1] = 1.0
-        self.mean_auc = auc(self.mean_fpr, mean_tpr)
+        self.mean_auc = np.mean(self.aucs) #auc(self.mean_fpr, mean_tpr)
         self.std_auc = np.std(self.aucs)
         self.ax.plot(
             self.mean_fpr,
