@@ -123,6 +123,20 @@ def getmeansd(dataset, batch: bool = False):
         return means, sd
 
 
+def adjust_freezing(model, epoch):
+    print(epoch)
+    if epoch == 10:
+        # Unfreeze the uppermost dense layer
+        layer = model.encoder.layers[3].ff[4]
+        for name, value in layer.named_parameters():
+            value.requires_grad = True
+    elif epoch == 20:
+        # Unfreeze the second from the top dense layer
+        layer = model.encoder.layers[3].ff[0]
+        for name, value in layer.named_parameters():
+            value.requires_grad = True
+            
+
 class EyetrackingClassifierBinary(nn.Module):
     def __init__(self, input_size: int, config, pretrained_model):
         super().__init__()
@@ -171,6 +185,10 @@ class EyetrackingClassifierBinary(nn.Module):
             )
             epoch_count += 1
             epoch_loss = 0
+            
+            # Gradual unfreezing
+            #adjust_freezing(model, epoch_count)
+          
             for X, y, _, _ in loader:
                 X = X.to(device)
                 y = y.to(device)
@@ -297,7 +315,7 @@ class BinaryTransformerClassifier(EyetrackingClassifierBinary):
         input_size: int, 
         config,
         pretrained_model,
-        dim_upscale = 256,
+        dim_upscale = 64,
         pad_token_id = -5,
         mask_ignore_token_ids = []
         ):
@@ -314,7 +332,7 @@ class BinaryTransformerClassifier(EyetrackingClassifierBinary):
         self.encoder = pretrained_model.encoder
         
         # new trainable layers
-        self.tuning = nn.Sequential(
+        self.classifier = nn.Sequential(
             nn.Linear(self.dim_upscale + NUM_DEMOGR_FEATURES, config["hidden_size"], bias = True),
             nn.ReLU(inplace=True),
             nn.Linear(config["hidden_size"], 16, bias = True),
@@ -347,7 +365,7 @@ class BinaryTransformerClassifier(EyetrackingClassifierBinary):
 #        mean_out = out[:, 0, :]# torch.mean(out, dim=-2) 
 #        first_out = out[:, 0, :]
 #        last_out = out[:, 29, :]
-        pred = self.tuning(linear_input)
+        pred = self.classifier(linear_input)
 
         return pred
         

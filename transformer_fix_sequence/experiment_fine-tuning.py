@@ -41,7 +41,7 @@ parser.add_argument("--cuda", dest="cudaid", default=0)
 parser.set_defaults(tune=True) 
 parser.set_defaults(roc=True)
 parser.set_defaults(batch_subjects=False) 
-parser.set_defaults(model = "transformer_tuning_slow")
+parser.set_defaults(model = "transformer_tuning_frozen")
 args = parser.parse_args()
 
 # Ensure that all operations are deterministic on GPU (if used) for reproducibility
@@ -57,7 +57,7 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 if device == "cuda":
     device = torch.device(f'cuda:{args.cudaid}')
   
-NUM_FOLDS = 3
+NUM_FOLDS = 10
 # NUM_TUNE_SETS = args.tunesets
 BATCH_SUBJECTS = args.batch_subjects
 CHECKPOINT_PATH = "results/pretraining/"
@@ -96,7 +96,7 @@ if tune:
     parameter_sample = [dict(zip(keys, v)) for v in itertools.product(*values)]
     used_test_params = []
 
-NUM_TUNE_SETS = 1#len(parameter_sample)
+NUM_TUNE_SETS = len(parameter_sample)
 print("Number of tune sets:", NUM_TUNE_SETS)
 tprs_folds = {}
 loss_fn = nn.BCEWithLogitsLoss()
@@ -116,7 +116,7 @@ def reload_model(freezing):
     if freezing == "transformer_tuning_frozen":
         for param in model.parameters():
     	    param.requires_grad = False
-    elif freezing == "transformer_tuning_slow":
+    elif freezing == "transformer_tuning_partial":
         for name, layer in model.named_children():
             if name in ['encoder.layers.3.ff.4', 'encoder.layers.3.ff.0']:
                 for param in layer.parameters():
@@ -124,6 +124,9 @@ def reload_model(freezing):
             else:
                 for param in layer.parameters():
                     param.requires_grad = False
+    elif freezing == "transformer_tuning_learnable":
+        for param in model.parameters(): 
+            param.requires_grad = True
     return model
 
 
