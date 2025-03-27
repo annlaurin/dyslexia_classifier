@@ -7,3 +7,7 @@ This repository contains the code and data necessary to reproduce the results re
 ## Usage guide
 To run the baseline LSTM model, please run the baseline_LSTM/experiment.py file. 
 To run the the new models (an enhanced LSTM and a pre-trained transformer classifier), please refer to folder 'transformer_fix_sequence' and to the readme file in the folder.
+
+## Contact information
+If it is about the code, you can create an issue.
+Otherwise you can contact [Anna](https://annlaurin.netlify.app/).
