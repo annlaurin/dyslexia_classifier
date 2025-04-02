@@ -52,12 +52,7 @@ class AnnasPositionalEncoding(nn.Module):
         nn.init.xavier_uniform_(self.fix_encoding)  # Xavier initialization for better training stability
         self.fix_encoding = self.fix_encoding.expand(-1, features)
         
-        # Initialize a learnable positional encoding matrix for features
-        self.feat_encoding = nn.Parameter(torch.zeros(1, features)).to(device)
-        nn.init.xavier_uniform_(self.feat_encoding)  # Xavier initialization for better training stability
-        self.feat_encoding = self.feat_encoding.expand(fixations, -1)
-        
-        self.encoding = self.fix_encoding + self.feat_encoding
+        self.encoding = self.fix_encoding 
         
     def forward(self, x, mask = None):
         if mask is not None:
